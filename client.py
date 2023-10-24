@@ -1,7 +1,6 @@
 import select
 import socket
 import sys
-import signal
 import argparse
 import threading
 import ssl
@@ -23,17 +22,13 @@ def get_and_send(client):
 class ChatClient():
     """ A command line chat client using select """
 
-    def __init__(self, name, port, host=SERVER_HOST):
-        self.name = name
+    def __init__(self, port, host=SERVER_HOST):
         self.connected = False
         self.host = host
         self.port = port
 
         self.context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2, ssl.CERT_NONE)
         self.context.set_ciphers('AES128-SHA')
-
-        # Initial prompt
-        self.prompt = f'[{name}@{socket.gethostname()}]> '
 
         # Connect to server at port
         try:
@@ -42,16 +37,23 @@ class ChatClient():
                 self.sock, server_hostname=host)
 
             self.sock.connect((host, self.port))
+            print(receive(self.sock)) # Print server's question
+            choice = input() # Get user's choice
+            send(self.sock, choice)
+            username = input('Username: ')
+            password = input('Password: ')
+            send(self.sock, username)
+            send(self.sock, password)
             print(f'Now connected to chat server@ port {self.port}')
             self.connected = True
 
-            # Send my name...
-            send(self.sock, 'NAME: ' + self.name)
+            # Send my username...
+            send(self.sock, 'NAME: ' + username)
             data = receive(self.sock)
 
             # Contains client address, set it
             addr = data.split('CLIENT: ')[1]
-            self.prompt = '[' + '@'.join((self.name, addr)) + ']> '
+            self.prompt = '[' + '@'.join((username, addr)) + ']> '
 
             threading.Thread(target=get_and_send, args=(self,)).start()
 
@@ -76,10 +78,6 @@ class ChatClient():
                     [self.sock], [], [])
 
                 for sock in readable:
-                    # if sock == 0:
-                    #     data = sys.stdin.readline().strip()
-                    #     if data:
-                    #         send(self.sock, data)
                     if sock == self.sock:
                         data = receive(self.sock)
                         if not data:
@@ -99,12 +97,10 @@ class ChatClient():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--name', action="store", dest="name", required=True)
     parser.add_argument('--port', action="store", dest="port", type=int, required=True)
     given_args = parser.parse_args()
 
     port = given_args.port
-    name = given_args.name
 
-    client = ChatClient(name=name, port=port)
+    client = ChatClient(port=port)
     client.run()
