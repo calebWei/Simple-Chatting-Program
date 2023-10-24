@@ -71,7 +71,7 @@ class ChatServer(object):
 
     # Verify Password
     def verify_password(self, stored_password, provided_password):
-        stored_password_bytes = bytes.fromhex(stored_password) # Convert hex string back to bytes
+        stored_password_bytes = stored_password # stored_password is already a string
         salt = stored_password_bytes[:32]
         stored_key = stored_password_bytes[32:]
         key = hashlib.pbkdf2_hmac('sha256', provided_password.encode('utf-8'), salt, 100000)

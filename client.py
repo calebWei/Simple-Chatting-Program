@@ -33,8 +33,7 @@ class ChatClient():
         # Connect to server at port
         try:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.sock = self.context.wrap_socket(
-                self.sock, server_hostname=host)
+            self.sock = self.context.wrap_socket(self.sock, server_hostname=host)
 
             self.sock.connect((host, self.port))
             print(receive(self.sock)) # Print server's question
@@ -44,17 +43,20 @@ class ChatClient():
             password = input('Password: ')
             send(self.sock, username)
             send(self.sock, password)
-            print(f'Now connected to chat server@ port {self.port}')
-            self.connected = True
-
+            
             # Send my username...
             send(self.sock, 'NAME: ' + username)
             data = receive(self.sock)
 
+            if (data == 'Registration failed' or data == 'Login failed'):
+                print("Failed")
+                quit
+
             # Contains client address, set it
             addr = data.split('CLIENT: ')[1]
             self.prompt = '[' + '@'.join((username, addr)) + ']> '
-
+            print(f'Now connected to chat server@ port {self.port}')
+            self.connected = True
             threading.Thread(target=get_and_send, args=(self,)).start()
 
         except socket.error as e:
